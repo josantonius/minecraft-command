@@ -1,0 +1,17 @@
+# This file contains all the messages required for the plugin.
+# DO NOT delete any messages here completely or it may break the plugin.
+# You're free to change them as you please, however.
+# You can find more information about this file here:
+# https://github.com/josantonius/minecraft-command
+
+command:
+  cooldown: "<blue>Stay still for <gray>{1} seconds<blue> or command cancels..."
+
+error:
+  command:
+    permission: "<red>You do not have permission to use this command"
+  player:
+    moved: "<red>You have moved! The command has been cancelled"
+
+plugin:
+  reloaded: "<dark_aqua>Plugin successfully reloaded!"

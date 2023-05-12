@@ -1,0 +1,6 @@
+# This is the main configuration file for the plugin.
+# You can find more information about this file here:
+# https://github.com/josantonius/minecraft-command
+
+# Custom commands list.
+commands: null
