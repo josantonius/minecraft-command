@@ -7,11 +7,7 @@ This plugin allows server administrators to create custom commands with specific
 
 Custom commands can be cancelled by other plugins in the `PlayerCommandPreprocessEvent` event.
 
-<video
-    src=".github/resources/minecraft-command.mp4"
-    width="100%"
-    controls>
-</video>
+## [Watch demo on YouTube](https://www.youtube.com/watch?v=whHH9OC_1qI)
 
 ## Requirements
 
@@ -175,8 +171,7 @@ playername 100 64 200`, and the message will be "Warp set at coordinates 100, 64
 ## Compatibility with Other Plugins
 
 This plugin uses the PlayerCommandPreprocessEvent to handle custom commands. If you want to cancel
-a custom command from another plugin, you can do so by calling `event.isCancelled` on the
-`PlayerCommandPreprocessEvent`.
+a custom command from another plugin, you can do so by calling `event.isCancelled` on the `PlayerCommandPreprocessEvent`.
 
 ## TODO
 
