@@ -20,7 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin
 class Main : JavaPlugin(), Listener {
     lateinit var configuration: CommandConfig
     lateinit var message: Message
-    private val userCommands = mutableMapOf<UUID, Pair<String, Array<String>>>()
+    private val userCommands = mutableMapOf<UUID, Triple<String, String, Array<String>>>()
     private val userTasks = mutableMapOf<UUID, Int>()
 
     override fun onEnable() {
@@ -40,12 +40,12 @@ class Main : JavaPlugin(), Listener {
                 commandData
                         .entries
                         .mapNotNull { (commandName, _) ->
-                            if (event.message.matches(Regex("/$commandName($|\\s).*")))
+                            if (event.message.startsWith("/$commandName"))
                                     commandName.length to commandName
                             else null
                         }
                         .maxByOrNull { it.first }
-                        ?.let { (length, commandName) -> commandName to commandData[commandName] }
+                        ?.let { (_, commandName) -> commandName to commandData[commandName] }
 
         if (foundCommandEntry != null) {
             val (commandName, command) = foundCommandEntry
@@ -60,8 +60,8 @@ class Main : JavaPlugin(), Listener {
                 Bukkit.getScheduler().cancelTask(existingTaskId)
             }
 
-            setUserCommand(player, commandName, args)
-            val taskId = scheduleUserTask(player, commandName, cooldown)
+            setUserCommand(player, event.message, commandName, args)
+            val taskId = scheduleUserTask(player, commandName, event.message, cooldown)
             updateUserTask(player, taskId)
 
             if (cooldown > 0) {
@@ -76,7 +76,7 @@ class Main : JavaPlugin(), Listener {
         val uuid = player.uniqueId
 
         if (userCommands.containsKey(uuid) && userTasks.containsKey(uuid)) {
-            val commandName = userCommands[uuid]?.first
+            val commandName = userCommands[uuid]?.second
             val commandData = configuration.getCommands()[commandName]
             val isExcluded =
                     configuration.excludeOpsFromCooldowns() && player.hasPermission("command.admin")
@@ -124,8 +124,13 @@ class Main : JavaPlugin(), Listener {
         }
     }
 
-    private fun setUserCommand(player: Player, commandName: String, args: Array<String>) {
-        userCommands[player.uniqueId] = commandName to args
+    private fun setUserCommand(
+            player: Player,
+            fullCommand: String,
+            commandName: String,
+            args: Array<String>
+    ) {
+        userCommands[player.uniqueId] = Triple(fullCommand, commandName, args)
     }
 
     private fun removeUserCommand(player: Player) {
@@ -140,19 +145,24 @@ class Main : JavaPlugin(), Listener {
         userTasks.remove(player.uniqueId)
     }
 
-    private fun scheduleUserTask(player: Player, commandName: String, cooldown: Int?): Int {
+    private fun scheduleUserTask(
+            player: Player,
+            commandName: String,
+            fullCommand: String,
+            cooldown: Int?
+    ): Int {
         return Bukkit.getScheduler()
                 .runTaskLater(
                         this,
                         Runnable {
                             val uuid = player.uniqueId
                             if (userCommands.containsKey(uuid) && userTasks.containsKey(uuid)) {
-                                val (pendingCommandName, args) = userCommands[uuid]!!
+                                val (_, pendingCommandName, args) = userCommands[uuid]!!
                                 if (pendingCommandName == commandName) {
                                     val commandData =
                                             configuration.getCommands()[pendingCommandName]
                                     commandData?.actions?.forEach { action ->
-                                        executeAction(player, action, args)
+                                        executeAction(player, action, fullCommand, args)
                                     }
                                     removeUserCommand(player)
                                     removeUserTask(player)
@@ -164,7 +174,12 @@ class Main : JavaPlugin(), Listener {
                 .taskId
     }
 
-    private fun executeAction(player: Player, action: String, args: Array<String>) {
+    private fun executeAction(
+            player: Player,
+            action: String,
+            fullCommand: String,
+            args: Array<String>
+    ) {
         val playerName = player.name
         var processedAction = action.replace("%player%", playerName)
 
@@ -176,25 +191,17 @@ class Main : JavaPlugin(), Listener {
         if (processedAction.startsWith("command_console:")) {
             val command = processedAction.substring("command_console:".length).trim()
             if (command == "*") {
-                val userCommandAndArgs = userCommands[player.uniqueId]
-                if (userCommandAndArgs != null) {
-                    val (userCommand, userArgs) = userCommandAndArgs
-                    Bukkit.dispatchCommand(
-                            Bukkit.getConsoleSender(),
-                            "$userCommand ${userArgs.joinToString(" ")}"
-                    )
-                }
+                Bukkit.dispatchCommand(
+                        Bukkit.getConsoleSender(),
+                        fullCommand.substring(1) // Remove the leading "/"
+                )
             } else {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
             }
         } else if (processedAction.startsWith("command_player:")) {
             val command = processedAction.substring("command_player:".length).trim()
             if (command == "*") {
-                val userCommandAndArgs = userCommands[player.uniqueId]
-                if (userCommandAndArgs != null) {
-                    val (userCommand, userArgs) = userCommandAndArgs
-                    Bukkit.dispatchCommand(player, "$userCommand ${userArgs.joinToString(" ")}")
-                }
+                Bukkit.dispatchCommand(player, fullCommand.substring(1)) // Remove the leading "/"
             } else {
                 Bukkit.dispatchCommand(player, command)
             }
