@@ -32,15 +32,27 @@ class Main : JavaPlugin(), Listener {
         if (event.isCancelled) {
             return
         }
-        val input = event.message.trim().split(" ")
-        val commandName = input[0].substring(1).lowercase()
-        val commandData = configuration.getCommands()[commandName]
 
-        if (commandData != null) {
+        val input = event.message.trim().split(" ")
+        val commandData = configuration.getCommands()
+
+        val foundCommandEntry =
+                commandData
+                        .entries
+                        .mapNotNull { (commandName, _) ->
+                            if (event.message.matches(Regex("/$commandName($|\\s).*")))
+                                    commandName.length to commandName
+                            else null
+                        }
+                        .maxByOrNull { it.first }
+                        ?.let { (length, commandName) -> commandName to commandData[commandName] }
+
+        if (foundCommandEntry != null) {
+            val (commandName, command) = foundCommandEntry
             val player = event.player
             val cooldown =
-                    if (player.hasPermission("command.admin")) 0 else (commandData.cooldown ?: 0)
-            val args = input.subList(1, input.size).toTypedArray()
+                    if (player.hasPermission("command.admin")) 0 else (command?.cooldown ?: 0)
+            val args = input.subList(commandName.split(" ").size, input.size).toTypedArray()
             event.isCancelled = true
 
             val existingTaskId = userTasks[player.uniqueId]
@@ -66,8 +78,9 @@ class Main : JavaPlugin(), Listener {
         if (userCommands.containsKey(uuid) && userTasks.containsKey(uuid)) {
             val commandName = userCommands[uuid]?.first
             val commandData = configuration.getCommands()[commandName]
-            val cooldown =
-                    if (player.hasPermission("command.admin")) 0 else (commandData?.cooldown ?: 0)
+            val isExcluded =
+                    configuration.excludeOpsFromCooldowns() && player.hasPermission("command.admin")
+            val cooldown = if (isExcluded) 0 else (commandData?.cooldown ?: 0)
 
             if (cooldown > 0) {
                 sendMessage(player, "error.player.moved")
@@ -162,10 +175,29 @@ class Main : JavaPlugin(), Listener {
         processedAction = processedAction.replace(Regex("\\{\\d+}"), "")
         if (processedAction.startsWith("command_console:")) {
             val command = processedAction.substring("command_console:".length).trim()
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
+            if (command == "*") {
+                val userCommandAndArgs = userCommands[player.uniqueId]
+                if (userCommandAndArgs != null) {
+                    val (userCommand, userArgs) = userCommandAndArgs
+                    Bukkit.dispatchCommand(
+                            Bukkit.getConsoleSender(),
+                            "$userCommand ${userArgs.joinToString(" ")}"
+                    )
+                }
+            } else {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
+            }
         } else if (processedAction.startsWith("command_player:")) {
             val command = processedAction.substring("command_player:".length).trim()
-            Bukkit.dispatchCommand(player, command)
+            if (command == "*") {
+                val userCommandAndArgs = userCommands[player.uniqueId]
+                if (userCommandAndArgs != null) {
+                    val (userCommand, userArgs) = userCommandAndArgs
+                    Bukkit.dispatchCommand(player, "$userCommand ${userArgs.joinToString(" ")}")
+                }
+            } else {
+                Bukkit.dispatchCommand(player, command)
+            }
         } else if (processedAction.startsWith("message:")) {
             var message = processedAction.substring("message:".length).trim()
             sendMessage(player, message, *args)

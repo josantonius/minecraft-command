@@ -6,12 +6,14 @@ import org.bukkit.plugin.java.JavaPlugin
 class CommandConfig(plugin: JavaPlugin) {
     private val config: FileConfiguration
     private val commands: Map<String, CommandData>
+    private val excludeOpsFromCooldowns: Boolean
 
     init {
         plugin.saveDefaultConfig()
         plugin.reloadConfig()
         config = plugin.config
         commands = getCommandsFromConfig()
+        excludeOpsFromCooldowns = config.getBoolean("excludeOps", true)
     }
 
     data class CommandData(val actions: List<String>, val cooldown: Int?)
@@ -30,6 +32,10 @@ class CommandConfig(plugin: JavaPlugin) {
 
     fun getCommandNames(): Set<String> {
         return commands.keys
+    }
+
+    fun excludeOpsFromCooldowns(): Boolean {
+        return excludeOpsFromCooldowns
     }
 
     private fun getCommandsFromConfig(): Map<String, CommandData> {

@@ -168,6 +168,23 @@ commands:
 When a player types `/setwarp 100 64 200`, the command action will be executed as `setworldspawn
 playername 100 64 200`, and the message will be "Warp set at coordinates 100, 64, 200".
 
+## Executing Command Exactly as Player Input
+
+To execute the command exactly as the player input, you can use the `*` symbol. This takes the command
+and arguments that the player entered, and executes them as they were entered.
+
+```yaml
+commands:
+  'ps home':
+    actions:
+      - 'command_player: *'
+    cooldown: 5
+```
+
+In this example, when a player enters the command ps home `ps-158-1555`, it will be executed exactly
+as entered, with ps-158 being treated as an argument to the ps home command. The `*` acts as a
+placeholder for any arguments passed by the player.
+
 ## Compatibility with Other Plugins
 
 This plugin uses the PlayerCommandPreprocessEvent to handle custom commands. If you want to cancel
