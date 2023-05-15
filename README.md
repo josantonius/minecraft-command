@@ -1,6 +1,5 @@
 # Minecraft Command Plugin
 
-[![Release](https://jitpack.io/v/dev.josantonius/minecraft-command.svg)](https://jitpack.io/#dev.josantonius/minecraft-command)
 [![License](https://img.shields.io/github/license/josantonius/minecraft-command)](LICENSE)
 
 This plugin allows server administrators to create custom commands with specific actions and cooldowns.
